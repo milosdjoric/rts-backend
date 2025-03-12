@@ -18,36 +18,45 @@ model Participant {
   name      String
   rfidTag   String   @unique
   createdAt DateTime @default(now())
-
-  timings Timing[]
+  timings   Timing[]
 }
 
 model Checkpoint {
   id        String   @id @default(uuid())
   name      String
-  location  String? // Optional: GPS coordinates or description
+  location  String?
   createdAt DateTime @default(now())
-
-  timings Timing[]
+  timings   Timing[]
 }
 
 model Race {
-  id        String   @id @default(uuid())
-  name      String
-  date      DateTime
-  createdAt DateTime @default(now())
-
-  timings Timing[]
+  id               String   @id @default(uuid())
+  eventName        String
+  description      String?
+  mainImage        String?
+  gallery          String[]
+  organizer        String?
+  contactPhone     String?
+  contactEmail     String?
+  organizerSite    String?
+  registrationSite String?
+  socialMedia      String?
+  startLocation    String?
+  date             DateTime
+  elevation        Int?
+  distance         String?
+  competition      String?
+  createdAt        DateTime @default(now())
+  timings          Timing[]
 }
 
 model Timing {
-  id            String   @id @default(uuid())
+  id            String      @id @default(uuid())
   participantId String
   checkpointId  String
   raceId        String
-  timestamp     DateTime @default(now())
-
-  participant Participant @relation(fields: [participantId], references: [id], onDelete: Cascade)
-  checkpoint  Checkpoint  @relation(fields: [checkpointId], references: [id], onDelete: Cascade)
-  race        Race        @relation(fields: [raceId], references: [id], onDelete: Cascade)
+  timestamp     DateTime    @default(now())
+  participant   Participant @relation(fields: [participantId], references: [id], onDelete: Cascade)
+  checkpoint    Checkpoint  @relation(fields: [checkpointId], references: [id], onDelete: Cascade)
+  race          Race        @relation(fields: [raceId], references: [id], onDelete: Cascade)
 }
