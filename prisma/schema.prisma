@@ -35,21 +35,17 @@ model RaceEvent {
   description      String?
   mainImage        String?
   gallery          String[]
-  organizer        String
-  contactPhone     String
-  contactEmail     String
+  organizer        String?
+  contactPhone     String?
+  contactEmail     String?
   organizerSite    String?
   registrationSite String?
   socialMedia      String?
   startLocation    String
   startDateTime    DateTime
-  endDateTime      DateTime
-  elevation        Float?
-  distance         Float
+  endDateTime      DateTime?
   competition      String?
-  // New field for tag options
   tags             String[]
-  // Relation: a race event can have many races
   races            Race[]
 }
 
@@ -57,8 +53,8 @@ model Race {
   id          String    @id @default(uuid())
   raceEventId String
   elevation   Float?
-  length      Float?
-  gpsFile     String? // Could store a URL or file path
+  length      Float
+  gpsFile     String?
   raceEvent   RaceEvent  @relation(fields: [raceEventId], references: [id], onDelete: Cascade)
   timings     Timing[]
 }
