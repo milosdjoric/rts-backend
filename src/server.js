@@ -4,7 +4,7 @@ const cors = require('cors');
 
 const participantRoutes = require('./routes/participantRoutes');
 const checkpointRoutes = require('./routes/checkpointRoutes');
-const raceRoutes = require('./routes/raceRoutes');
+const raceRoutes = require('./routes/raceEventsRoutes');
 const timingRoutes = require('./routes/timingRoutes');
 
 const app = express();
