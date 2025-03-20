@@ -4,34 +4,6 @@ const {PrismaClient} = require('@prisma/client');
 const router = express.Router();
 const prisma = new PrismaClient();
 
-/**
- * raceRoutes.js
- *
- * This file defines the Express routes for managing Race Events in the race timing system.
- * It uses Prisma as an ORM to interact with the database. The routes allow clients to:
- *   - Retrieve all race events
- *   - Create a new race event
- *   - Retrieve a specific race event by ID
- *   - Update an existing race event
- *   - Delete a race event
- *
- * Each race event contains various fields such as eventName, startLocation, startDateTime, endDateTime,
- * contact details, and optionally nested races (each race may include fields like elevation, length, gpsFile).
- */
-
-// GET / - Retrieve all race events, including their nested races if provided
-router.get('/', async (req, res) => {
-    try {
-        const raceEvents = await prisma.raceEvent.findMany({
-            include: {races: true}  // include nested races if needed
-        });
-        res.json(raceEvents);
-    } catch (error) {
-        console.error("❌ Error fetching race events:", error);
-        res.status(500).json({error: "Failed to fetch race events", details: error.message});
-    }
-});
-
 // POST / - Create a new race event
 // Expected request body fields:
 //   eventName: String (required) - Name of the event
@@ -107,6 +79,34 @@ router.post('/', async (req, res) => {
     } catch (error) {
         console.error("❌ Error creating race event:", error);
         res.status(400).json({error: "Error creating race event", details: error.message});
+    }
+});
+
+/**
+ * raceRoutes.js
+ *
+ * This file defines the Express routes for managing Race Events in the race timing system.
+ * It uses Prisma as an ORM to interact with the database. The routes allow clients to:
+ *   - Retrieve all race events
+ *   - Create a new race event
+ *   - Retrieve a specific race event by ID
+ *   - Update an existing race event
+ *   - Delete a race event
+ *
+ * Each race event contains various fields such as eventName, startLocation, startDateTime, endDateTime,
+ * contact details, and optionally nested races (each race may include fields like elevation, length, gpsFile).
+ */
+
+// GET / - Retrieve all race events, including their nested races if provided
+router.get('/', async (req, res) => {
+    try {
+        const raceEvents = await prisma.raceEvent.findMany({
+            include: {races: true}  // include nested races if needed
+        });
+        res.json(raceEvents);
+    } catch (error) {
+        console.error("❌ Error fetching race events:", error);
+        res.status(500).json({error: "Failed to fetch race events", details: error.message});
     }
 });
 

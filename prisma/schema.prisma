@@ -13,6 +13,45 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+model RaceEvent {
+  id               String   @id @default(uuid())
+  eventName        String
+  description      String?
+  mainImage        String?
+  gallery          String[]
+  organizer        String?
+  contactPhone     String?
+  contactEmail     String?
+  organizerSite    String?
+  registrationSite String?
+  socialMedia      String?
+  tags             String[]
+  races            Race[]
+}
+
+model Competition {
+  id          String  @id @default(uuid())
+  name        String
+  description String?
+  races       Race[]
+}
+
+model Race {
+  id            String       @id @default(uuid())
+  raceName      String?
+  raceEventId   String
+  elevation     Float?
+  length        Float
+  gpsFile       String?
+  startLocation String
+  startDateTime DateTime
+  endDateTime   DateTime?
+  competitionId String?
+  raceEvent     RaceEvent    @relation(fields: [raceEventId], references: [id], onDelete: Cascade)
+  competition   Competition? @relation(fields: [competitionId], references: [id], onDelete: SetNull)
+  timings       Timing[]
+}
+
 model Participant {
   id        String   @id @default(uuid())
   name      String
@@ -27,37 +66,6 @@ model Checkpoint {
   location  String?
   createdAt DateTime @default(now())
   timings   Timing[]
-}
-
-model RaceEvent {
-  id               String   @id @default(uuid())
-  eventName        String
-  description      String?
-  mainImage        String?
-  gallery          String[]
-  organizer        String?
-  contactPhone     String?
-  contactEmail     String?
-  organizerSite    String?
-  registrationSite String?
-  socialMedia      String?
-  startLocation    String
-  startDateTime    DateTime
-  endDateTime      DateTime?
-  competition      String?
-  tags             String[]
-  races            Race[]
-}
-
-model Race {
-  id          String    @id @default(uuid())
-  raceName    String?
-  raceEventId String
-  elevation   Float?
-  length      Float
-  gpsFile     String?
-  raceEvent   RaceEvent  @relation(fields: [raceEventId], references: [id], onDelete: Cascade)
-  timings     Timing[]
 }
 
 model Timing {
