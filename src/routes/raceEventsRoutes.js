@@ -1,29 +1,14 @@
 const express = require('express');
 const {PrismaClient} = require('@prisma/client');
+const {validateRaceEvent} = require('../middleware/validateRaceEvent');
 
 const router = express.Router();
 const prisma = new PrismaClient();
 
 // POST / - Create a new race event
-router.post('/', async (req, res) => {
+router.post('/', validateRaceEvent, async (req, res) => {
     try {
         console.log("📩 Incoming Race Event Data:", req.body);
-
-        const requiredFields = ["eventName"];
-        for (const field of requiredFields) {
-            if (!req.body[field]) {
-                return res.status(400).json({error: `Missing required field: ${field}`});
-            }
-        }
-
-        // Validate each race's startDateTime
-        if (req.body.races) {
-            for (const [i, race] of req.body.races.entries()) {
-                if (!race.startDateTime) {
-                    return res.status(400).json({error: `Missing required field: startDateTime in race #${i + 1}`});
-                }
-            }
-        }
 
         // Parse dates and validate
         const startDateTime = new Date(req.body.startDateTime);
@@ -58,15 +43,29 @@ router.post('/', async (req, res) => {
                 tags: req.body.tags || [],
                 organizerId: organizerId || null, // Link to existing Organizer
                 races: req.body.races ? {
-                    create: req.body.races.map(race => ({
-                        raceName: race.raceName || null,
-                        elevation: race.elevation,
-                        length: race.length,
-                        gpsFile: race.gpsFile || null,
-                        startLocation: race.startLocation,
-                        startDateTime: new Date(race.startDateTime),
-                        endDateTime: race.endDateTime ? new Date(race.endDateTime) : null,
-                        competitionId: race.competitionId || null
+                    create: await Promise.all(req.body.races.map(async race => {
+                        let competitionId = race.competitionId;
+
+                        if (!competitionId && race.competition) {
+                            const createdCompetition = await prisma.competition.create({
+                                data: {
+                                    name: race.competition.name,
+                                    description: race.competition.description || null
+                                }
+                            });
+                            competitionId = createdCompetition.id;
+                        }
+
+                        return {
+                            raceName: race.raceName || null,
+                            elevation: race.elevation,
+                            length: race.length,
+                            gpsFile: race.gpsFile || null,
+                            startLocation: race.startLocation,
+                            startDateTime: new Date(race.startDateTime),
+                            endDateTime: race.endDateTime ? new Date(race.endDateTime) : null,
+                            competitionId: competitionId || null
+                        };
                     }))
                 } : undefined,
             },
@@ -130,7 +129,7 @@ router.get('/:id', async (req, res) => {
 });
 
 // PUT /:id - Update an existing race event
-router.put('/:id', async (req, res) => {
+router.put('/:id', validateRaceEvent, async (req, res) => {
     try {
         console.log("✏️ Updating Race Event Data:", req.body);
 
