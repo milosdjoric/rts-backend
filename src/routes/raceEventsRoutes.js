@@ -20,15 +20,26 @@ router.post('/', validateRaceEvent, async (req, res) => {
         let organizerId = req.body.organizerId;
 
         if (!organizerId && req.body.organizer) {
-            const createdOrganizer = await prisma.organizer.create({
-                data: {
+            const existing = await prisma.organizer.findFirst({
+                where: {
                     name: req.body.organizer.name,
-                    contactPhone: req.body.organizer.contactPhone || null,
-                    contactEmail: req.body.organizer.contactEmail || null,
-                    organizerSite: req.body.organizer.organizerSite || null,
+                    contactEmail: req.body.organizer.contactEmail
                 }
             });
-            organizerId = createdOrganizer.id;
+
+            if (existing) {
+                organizerId = existing.id;
+            } else {
+                const created = await prisma.organizer.create({
+                    data: {
+                        name: req.body.organizer.name,
+                        contactPhone: req.body.organizer.contactPhone || null,
+                        contactEmail: req.body.organizer.contactEmail || null,
+                        organizerSite: req.body.organizer.organizerSite || null,
+                    }
+                });
+                organizerId = created.id;
+            }
         }
 
         // Create the race event
@@ -47,13 +58,23 @@ router.post('/', validateRaceEvent, async (req, res) => {
                         let competitionId = race.competitionId;
 
                         if (!competitionId && race.competition) {
-                            const createdCompetition = await prisma.competition.create({
-                                data: {
-                                    name: race.competition.name,
-                                    description: race.competition.description || null
+                            const existingComp = await prisma.competition.findFirst({
+                                where: {
+                                    name: race.competition.name
                                 }
                             });
-                            competitionId = createdCompetition.id;
+
+                            if (existingComp) {
+                                competitionId = existingComp.id;
+                            } else {
+                                const createdCompetition = await prisma.competition.create({
+                                    data: {
+                                        name: race.competition.name,
+                                        description: race.competition.description || null
+                                    }
+                                });
+                                competitionId = createdCompetition.id;
+                            }
                         }
 
                         return {
@@ -140,6 +161,31 @@ router.put('/:id', validateRaceEvent, async (req, res) => {
             return res.status(400).json({error: "endDateTime must be after startDateTime"});
         }
 
+        let organizerId = req.body.organizerId;
+
+        if (!organizerId && req.body.organizer) {
+            const existing = await prisma.organizer.findFirst({
+                where: {
+                    name: req.body.organizer.name,
+                    contactEmail: req.body.organizer.contactEmail
+                }
+            });
+
+            if (existing) {
+                organizerId = existing.id;
+            } else {
+                const created = await prisma.organizer.create({
+                    data: {
+                        name: req.body.organizer.name,
+                        contactPhone: req.body.organizer.contactPhone || null,
+                        contactEmail: req.body.organizer.contactEmail || null,
+                        organizerSite: req.body.organizer.organizerSite || null,
+                    }
+                });
+                organizerId = created.id;
+            }
+        }
+
         const updatedRaceEvent = await prisma.raceEvent.update({
             where: {id: req.params.id},
             data: {
@@ -150,18 +196,40 @@ router.put('/:id', validateRaceEvent, async (req, res) => {
                 registrationSite: req.body.registrationSite || null,
                 socialMedia: req.body.socialMedia || null,
                 tags: req.body.tags || [],
-                organizerId: req.body.organizerId || null,
+                organizerId: organizerId || null,
                 races: req.body.races ? {
                     deleteMany: {}, // Clear existing races
-                    create: req.body.races.map(race => ({
-                        raceName: race.raceName || null,
-                        elevation: race.elevation,
-                        length: race.length,
-                        gpsFile: race.gpsFile || null,
-                        startLocation: race.startLocation,
-                        startDateTime: new Date(race.startDateTime),
-                        endDateTime: race.endDateTime ? new Date(race.endDateTime) : null,
-                        competitionId: race.competitionId || null
+                    create: await Promise.all(req.body.races.map(async race => {
+                        let competitionId = race.competitionId;
+
+                        if (!competitionId && race.competition) {
+                            const existingComp = await prisma.competition.findFirst({
+                                where: {name: race.competition.name}
+                            });
+
+                            if (existingComp) {
+                                competitionId = existingComp.id;
+                            } else {
+                                const createdCompetition = await prisma.competition.create({
+                                    data: {
+                                        name: race.competition.name,
+                                        description: race.competition.description || null
+                                    }
+                                });
+                                competitionId = createdCompetition.id;
+                            }
+                        }
+
+                        return {
+                            raceName: race.raceName || null,
+                            elevation: race.elevation,
+                            length: race.length,
+                            gpsFile: race.gpsFile || null,
+                            startLocation: race.startLocation,
+                            startDateTime: new Date(race.startDateTime),
+                            endDateTime: race.endDateTime ? new Date(race.endDateTime) : null,
+                            competitionId: competitionId || null
+                        };
                     }))
                 } : undefined,
             },
