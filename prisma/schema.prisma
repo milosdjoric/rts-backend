@@ -14,18 +14,16 @@ datasource db {
 }
 
 model RaceEvent {
-  id               String   @id @default(uuid())
+  id               String     @id @default(uuid())
   eventName        String
   description      String?
   mainImage        String?
   gallery          String[]
-  organizer        String?
-  contactPhone     String?
-  contactEmail     String?
-  organizerSite    String?
   registrationSite String?
   socialMedia      String?
   tags             String[]
+  organizerId      String?
+  organizer        Organizer? @relation(fields: [organizerId], references: [id], onDelete: SetNull)
   races            Race[]
 }
 
@@ -34,6 +32,15 @@ model Competition {
   name        String
   description String?
   races       Race[]
+}
+
+model Organizer {
+  id            String      @id @default(uuid())
+  name          String
+  contactPhone  String?
+  contactEmail  String?
+  organizerSite String?
+  raceEvents    RaceEvent[]
 }
 
 model Race {

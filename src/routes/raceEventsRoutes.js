@@ -5,71 +5,68 @@ const router = express.Router();
 const prisma = new PrismaClient();
 
 // POST / - Create a new race event
-// Expected request body fields:
-//   eventName: String (required) - Name of the event
-//   startLocation: String (required) - Starting location of the event
-//   startDateTime: String (required) - Start date and time in a valid date format
-//   endDateTime: String (optional) - End date and time in a valid date format (if provided, must be after startDateTime)
-//   description: String (optional) - Description of the event
-//   mainImage: String (optional) - URL/path to the main image
-//   gallery: Array (optional) - Array of image URLs/paths
-//   organizer: String (optional) - Organizer info (if used)
-//   contactPhone: String (optional) - Contact phone number
-//   contactEmail: String (optional) - Contact email address
-//   organizerSite: String (optional) - URL of the organizer's site
-//   registrationSite: String (optional) - URL for registration
-//   socialMedia: String (optional) - Social media links/info
-//   competition: String (optional) - Competition details
-//   tags: Array (optional) - Tags related to the event
-//   races: Array (optional) - Nested races information; each race may include:
-//            elevation: Number (optional) - Elevation data for the race
-//            length: String (optional) - Race length
-//            gpsFile: String (optional) - GPS file path/URL
 router.post('/', async (req, res) => {
     try {
         console.log("📩 Incoming Race Event Data:", req.body);
 
-        // Validate that all required fields are present in the request body
-        const requiredFields = [
-            "eventName", "startLocation", "startDateTime"
-        ];
+        const requiredFields = ["eventName"];
         for (const field of requiredFields) {
             if (!req.body[field]) {
                 return res.status(400).json({error: `Missing required field: ${field}`});
             }
         }
 
-        // Parse the startDateTime and endDateTime from the request body and validate that endDateTime is after startDateTime
+        // Validate each race's startDateTime
+        if (req.body.races) {
+            for (const [i, race] of req.body.races.entries()) {
+                if (!race.startDateTime) {
+                    return res.status(400).json({error: `Missing required field: startDateTime in race #${i + 1}`});
+                }
+            }
+        }
+
+        // Parse dates and validate
         const startDateTime = new Date(req.body.startDateTime);
-        const endDateTime = new Date(req.body.endDateTime);
-        if (endDateTime <= startDateTime) {
+        const endDateTime = req.body.endDateTime ? new Date(req.body.endDateTime) : null;
+        if (endDateTime && endDateTime <= startDateTime) {
             return res.status(400).json({error: "endDateTime must be after startDateTime"});
         }
 
-        // Create the race event in the database using Prisma. If nested races are provided, they are created as well.
+        let organizerId = req.body.organizerId;
+
+        if (!organizerId && req.body.organizer) {
+            const createdOrganizer = await prisma.organizer.create({
+                data: {
+                    name: req.body.organizer.name,
+                    contactPhone: req.body.organizer.contactPhone || null,
+                    contactEmail: req.body.organizer.contactEmail || null,
+                    organizerSite: req.body.organizer.organizerSite || null,
+                }
+            });
+            organizerId = createdOrganizer.id;
+        }
+
+        // Create the race event
         const raceEvent = await prisma.raceEvent.create({
             data: {
                 eventName: req.body.eventName,
                 description: req.body.description || null,
                 mainImage: req.body.mainImage || null,
                 gallery: req.body.gallery || [],
-                organizer: req.body.organizer,
-                contactPhone: req.body.contactPhone,
-                contactEmail: req.body.contactEmail,
-                organizerSite: req.body.organizerSite || null,
                 registrationSite: req.body.registrationSite || null,
                 socialMedia: req.body.socialMedia || null,
-                startLocation: req.body.startLocation,
-                startDateTime: startDateTime,
-                endDateTime: endDateTime,
-                competition: req.body.competition || null,
                 tags: req.body.tags || [],
-                // Nested creation for races if provided
+                organizerId: organizerId || null, // Link to existing Organizer
                 races: req.body.races ? {
                     create: req.body.races.map(race => ({
+                        raceName: race.raceName || null,
                         elevation: race.elevation,
                         length: race.length,
                         gpsFile: race.gpsFile || null,
+                        startLocation: race.startLocation,
+                        startDateTime: new Date(race.startDateTime),
+                        endDateTime: race.endDateTime ? new Date(race.endDateTime) : null,
+                        competitionId: race.competitionId || null
                     }))
                 } : undefined,
             },
@@ -101,7 +98,10 @@ router.post('/', async (req, res) => {
 router.get('/', async (req, res) => {
     try {
         const raceEvents = await prisma.raceEvent.findMany({
-            include: {races: true}  // include nested races if needed
+            include: {
+                races: true,
+                organizer: true,
+            }
         });
         res.json(raceEvents);
     } catch (error) {
@@ -115,7 +115,7 @@ router.get('/:id', async (req, res) => {
     try {
         const raceEvent = await prisma.raceEvent.findUnique({
             where: {id: req.params.id},
-            include: {races: true}
+            include: {races: true, organizer: true}
         });
 
         if (!raceEvent) {
@@ -130,20 +130,15 @@ router.get('/:id', async (req, res) => {
 });
 
 // PUT /:id - Update an existing race event
-// The request body can include updated values for the event fields. Date fields, if provided, are validated to ensure proper order.
-// If nested races are included, they overwrite the existing races data.
 router.put('/:id', async (req, res) => {
     try {
         console.log("✏️ Updating Race Event Data:", req.body);
 
-        // If dates are provided, parse and validate them
-        let startDateTime, endDateTime;
-        if (req.body.startDateTime && req.body.endDateTime) {
-            startDateTime = new Date(req.body.startDateTime);
-            endDateTime = new Date(req.body.endDateTime);
-            if (endDateTime <= startDateTime) {
-                return res.status(400).json({error: "endDateTime must be after startDateTime"});
-            }
+        // Parse and validate date fields
+        let startDateTime = req.body.startDateTime ? new Date(req.body.startDateTime) : null;
+        let endDateTime = req.body.endDateTime ? new Date(req.body.endDateTime) : null;
+        if (startDateTime && endDateTime && endDateTime <= startDateTime) {
+            return res.status(400).json({error: "endDateTime must be after startDateTime"});
         }
 
         const updatedRaceEvent = await prisma.raceEvent.update({
@@ -153,26 +148,21 @@ router.put('/:id', async (req, res) => {
                 description: req.body.description || null,
                 mainImage: req.body.mainImage || null,
                 gallery: req.body.gallery || [],
-                organizer: req.body.organizer,
-                contactPhone: req.body.contactPhone,
-                contactEmail: req.body.contactEmail,
-                organizerSite: req.body.organizerSite || null,
                 registrationSite: req.body.registrationSite || null,
                 socialMedia: req.body.socialMedia || null,
-                startLocation: req.body.startLocation,
-                startDateTime: startDateTime,
-                endDateTime: endDateTime,
-                elevation: req.body.elevation ? Number(req.body.elevation) : null,
-                distance: req.body.distance,
-                competition: req.body.competition || null,
                 tags: req.body.tags || [],
-                // Optionally overwrite nested races if provided
+                organizerId: req.body.organizerId || null,
                 races: req.body.races ? {
-                    deleteMany: {}, // Delete existing nested races
+                    deleteMany: {}, // Clear existing races
                     create: req.body.races.map(race => ({
+                        raceName: race.raceName || null,
                         elevation: race.elevation,
                         length: race.length,
                         gpsFile: race.gpsFile || null,
+                        startLocation: race.startLocation,
+                        startDateTime: new Date(race.startDateTime),
+                        endDateTime: race.endDateTime ? new Date(race.endDateTime) : null,
+                        competitionId: race.competitionId || null
                     }))
                 } : undefined,
             },
