@@ -1,6 +1,7 @@
 const express = require('express');
 const {PrismaClient} = require('@prisma/client');
 const {validateRaceEvent} = require('../middleware/validateRaceEvent');
+const {applyRaceEventFilters} = require('../middleware/applyRaceEventFilters');
 
 const router = express.Router();
 const prisma = new PrismaClient();
@@ -115,15 +116,39 @@ router.post('/', validateRaceEvent, async (req, res) => {
  */
 
 // GET / - Retrieve all race events, including their nested races if provided
-router.get('/', async (req, res) => {
+router.get('/', applyRaceEventFilters, async (req, res) => {
     try {
-        const raceEvents = await prisma.raceEvent.findMany({
-            include: {
-                races: true,
-                organizer: true,
+        const page = parseInt(req.query.page) || 1;
+        const limit = parseInt(req.query.limit) || 10;
+        const skip = (page - 1) * limit;
+        const sortBy = req.query.sortBy || 'eventName';
+        const order = req.query.order === 'desc' ? 'desc' : 'asc';
+
+        const [raceEvents, totalCount] = await Promise.all([
+            prisma.raceEvent.findMany({
+                skip,
+                take: limit,
+                where: req.filters,
+                orderBy: {[sortBy]: order},
+                include: {
+                    races: true,
+                    organizer: true,
+                }
+            }),
+            prisma.raceEvent.count()
+        ]);
+
+        res.json({
+            data: raceEvents,
+            meta: {
+                page,
+                limit,
+                totalPages: Math.ceil(totalCount / limit),
+                totalCount,
+                sortBy,
+                order,
             }
         });
-        res.json(raceEvents);
     } catch (error) {
         console.error("❌ Error fetching race events:", error);
         res.status(500).json({error: "Failed to fetch race events", details: error.message});
