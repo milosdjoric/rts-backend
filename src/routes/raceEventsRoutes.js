@@ -31,7 +31,7 @@ const upload = multer({storage});
 router.post('/upload-image', upload.single('image'), (req, res) => {
     if (!req.file) return res.status(400).json({error: 'No file uploaded'});
 
-    const imageUrl = `/uploads/${req.file.filename}`; // Local or change to CDN path
+    const imageUrl = `http://localhost:5001/uploads/${req.file.filename}`; // Local or change to CDN path
     res.status(201).json({url: imageUrl});
 });
 

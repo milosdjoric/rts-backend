@@ -1,6 +1,7 @@
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
+const path = require('path');
 
 const participantRoutes = require('./routes/participantRoutes');
 const checkpointRoutes = require('./routes/checkpointRoutes');
@@ -8,6 +9,7 @@ const raceRoutes = require('./routes/raceEventsRoutes');
 const timingRoutes = require('./routes/timingRoutes');
 
 const app = express();
+app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 app.use(cors());
 app.use(express.json());
 
