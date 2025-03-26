@@ -16,6 +16,28 @@ const storage = multer.diskStorage({
     }
 });
 
-const upload = multer({storage});
+const imageFilter = (req, file, cb) => {
+    const allowed = ["image/jpeg", "image/png", "image/webp"];
+    if (allowed.includes(file.mimetype)) {
+        cb(null, true);
+    } else {
+        cb(null, false);
+    }
+};
 
-module.exports = upload;
+const gpsFilter = (req, file, cb) => {
+    const ext = path.extname(file.originalname).toLowerCase();
+    if ([".gpx", ".tcx", ".fit"].includes(ext)) {
+        cb(null, true);
+    } else {
+        cb(null, false);
+    }
+};
+
+const imageUpload = multer({storage, fileFilter: imageFilter});
+const gpsUpload = multer({storage, fileFilter: gpsFilter});
+
+module.exports = {
+    imageUpload,
+    gpsUpload,
+};

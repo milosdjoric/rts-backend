@@ -2,16 +2,24 @@ const express = require('express');
 const {PrismaClient} = require('@prisma/client');
 const {validateRaceEvent} = require('../middleware/validateRaceEvent');
 const {applyRaceEventFilters} = require('../middleware/applyRaceEventFilters');
+const { imageUpload, gpsUpload } = require('../middleware/upload');
 const router = express.Router();
 const prisma = new PrismaClient();
-const upload = require('../middleware/upload');
 
 // POST /upload-image
-router.post('/upload-image', upload.single('image'), (req, res) => {
+router.post('/upload-image', imageUpload.single('image'), (req, res) => {
     if (!req.file) return res.status(400).json({error: 'No file uploaded'});
 
     const imageUrl = `http://localhost:5001/uploads/${req.file.filename}`; // Local or change to CDN path
     res.status(201).json({url: imageUrl});
+});
+
+// POST /upload-gps
+router.post('/upload-gps', gpsUpload.single('file'), (req, res) => {
+    if (!req.file) return res.status(400).json({ error: 'No GPS file uploaded' });
+
+    const fileUrl = `http://localhost:5001/uploads/${req.file.filename}`;
+    res.status(201).json({ url: fileUrl });
 });
 
 // POST / - Create a new race event
@@ -59,7 +67,9 @@ router.post('/', validateRaceEvent, async (req, res) => {
                 mainImage: req.body.mainImage || null,
                 gallery: req.body.gallery || [],
                 registrationSite: req.body.registrationSite || null,
-                socialMedia: req.body.socialMedia || null,
+                socialMedia: Array.isArray(req.body.socialMedia)
+                    ? req.body.socialMedia.filter(item => typeof item === 'string')
+                    : [],
                 tags: req.body.tags || [],
                 organizerId: organizerId || null, // Link to existing Organizer
                 races: req.body.races ? {
@@ -78,7 +88,7 @@ router.post('/', validateRaceEvent, async (req, res) => {
                             } else {
                                 const createdCompetition = await prisma.competition.create({
                                     data: {
-                                        name: race.competition.name,
+                                        name: race.competition.name?.trim() || 'Individual Competition',
                                         description: race.competition.description || null
                                     }
                                 });

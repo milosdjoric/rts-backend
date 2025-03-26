@@ -20,7 +20,7 @@ model RaceEvent {
   mainImage        String?
   gallery          String[]
   registrationSite String?
-  socialMedia      String?
+  socialMedia      String[]
   tags             String[]
   organizerId      String?
   organizer        Organizer? @relation(fields: [organizerId], references: [id], onDelete: SetNull)
