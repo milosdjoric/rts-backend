@@ -2,30 +2,9 @@ const express = require('express');
 const {PrismaClient} = require('@prisma/client');
 const {validateRaceEvent} = require('../middleware/validateRaceEvent');
 const {applyRaceEventFilters} = require('../middleware/applyRaceEventFilters');
-
 const router = express.Router();
 const prisma = new PrismaClient();
-
-const multer = require('multer');
-const path = require('path');
-const fs = require('fs');
-
-// Create uploads folder if it doesn't exist
-const uploadDir = path.join(__dirname, '../../uploads');
-if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir);
-
-// Configure multer storage
-const storage = multer.diskStorage({
-    destination: (req, file, cb) => cb(null, uploadDir),
-    filename: (req, file, cb) => {
-        const originalExt = file.originalname.split('.').pop();
-        const today = new Date().toISOString().slice(0, 10); // yyyy-mm-dd
-        const random = Math.floor(Math.random() * 10000); // random number
-        const filename = `${today}__${random}.${originalExt}`;
-        cb(null, filename);
-    }
-});
-const upload = multer({storage});
+const upload = require('../middleware/upload');
 
 // POST /upload-image
 router.post('/upload-image', upload.single('image'), (req, res) => {
