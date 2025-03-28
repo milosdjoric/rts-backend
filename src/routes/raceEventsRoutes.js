@@ -2,7 +2,7 @@ const express = require('express');
 const {PrismaClient} = require('@prisma/client');
 const {validateRaceEvent} = require('../middleware/validateRaceEvent');
 const {applyRaceEventFilters} = require('../middleware/applyRaceEventFilters');
-const { imageUpload, gpsUpload } = require('../middleware/upload');
+const {imageUpload, gpsUpload} = require('../middleware/upload');
 const router = express.Router();
 const prisma = new PrismaClient();
 
@@ -16,10 +16,10 @@ router.post('/upload-image', imageUpload.single('image'), (req, res) => {
 
 // POST /upload-gps
 router.post('/upload-gps', gpsUpload.single('file'), (req, res) => {
-    if (!req.file) return res.status(400).json({ error: 'No GPS file uploaded' });
+    if (!req.file) return res.status(400).json({error: 'No GPS file uploaded'});
 
     const fileUrl = `http://localhost:5001/uploads/${req.file.filename}`;
-    res.status(201).json({ url: fileUrl });
+    res.status(201).json({url: fileUrl});
 });
 
 // POST / - Create a new race event
