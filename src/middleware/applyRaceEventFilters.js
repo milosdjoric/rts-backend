@@ -12,6 +12,16 @@ function buildDynamicFilters(query) {
             continue;
         }
 
+        if (key === 'competitionId') {
+            const ids = query[key].split(',').map(id => id.trim());
+            where.races = {
+                some: {
+                    competitionId: {in: ids}
+                }
+            };
+            continue;
+        }
+
         const value = query[key];
         const match = key.match(/^(.+?)_(contains|startsWith|endsWith|gte|lte|eq)$/);
 

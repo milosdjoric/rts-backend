@@ -5,6 +5,7 @@ const {applyRaceEventFilters} = require('../middleware/applyRaceEventFilters');
 const {imageUpload, gpsUpload} = require('../middleware/upload');
 const router = express.Router();
 const prisma = new PrismaClient();
+const {competition} = new PrismaClient(); // Added line
 
 // POST /upload-image
 router.post('/upload-image', imageUpload.single('image'), (req, res) => {
@@ -149,7 +150,11 @@ router.get('/', applyRaceEventFilters, async (req, res) => {
                 where: req.filters,
                 orderBy: {[sortBy]: order},
                 include: {
-                    races: true,
+                    races: {
+                        include: {
+                            competition: true
+                        }
+                    },
                     organizer: true,
                 }
             }),
