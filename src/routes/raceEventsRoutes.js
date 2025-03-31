@@ -178,7 +178,14 @@ router.get('/:id', async (req, res) => {
     try {
         const raceEvent = await prisma.raceEvent.findUnique({
             where: {id: req.params.id},
-            include: {races: true, organizer: true}
+            include: {
+                races: {
+                    include: {
+                        competition: true
+                    }
+                },
+                organizer: true
+            }
         });
 
         if (!raceEvent) {
