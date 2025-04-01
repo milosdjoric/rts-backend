@@ -12,13 +12,9 @@ function buildDynamicFilters(query) {
             continue;
         }
 
-        if (key === 'competitionId') {
+        if (key === 'competitionIds_in') {
             const ids = query[key].split(',').map(id => id.trim());
-            where.races = {
-                some: {
-                    competitionId: {in: ids}
-                }
-            };
+            raceFilters.competitionId = {in: ids};
             continue;
         }
 
@@ -54,9 +50,18 @@ function buildDynamicFilters(query) {
         }
     }
 
+    if (query.length_gte || query.length_lte) {
+        raceFilters.length = {
+            ...(query.length_gte && {gte: parseFloat(query.length_gte)}),
+            ...(query.length_lte && {lte: parseFloat(query.length_lte)})
+        };
+    }
+
     if (Object.keys(raceFilters).length) {
         where.races = {some: raceFilters};
     }
+
+    console.log("🚀 Final Prisma filters:", JSON.stringify(where, null, 2));
 
     return where;
 }
