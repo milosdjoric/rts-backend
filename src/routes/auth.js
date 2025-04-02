@@ -14,20 +14,14 @@ router.post('/login', (req, res, next) => {
             return next(err);
         }
         if (!user) {
-            return res.status(400).json({error: info.message || 'Login failed'});
+            return res.status(400).json({error: info.message || 'BE - Login failed'});
         }
         req.logIn(user, (err) => {
             if (err) {
                 return next(err);
             }
-            return res.json({
-                message: 'Logged in successfully',
-                user: {
-                    id: user.id,
-                    email: user.email,
-                    role: user.role,
-                }
-            });
+            // Replace the JSON response with a redirect to the home page
+            return res.redirect('/');
         });
     })(req, res, next);
 });
@@ -37,15 +31,12 @@ router.post('/register', async (req, res) => {
     try {
         const {email, password, role} = req.body;
 
-        console.log('password');
-        console.log(password);
-
         // (A) Check if user already exists
         const existingUser = await prisma.user.findUnique({
             where: {email}
         });
         if (existingUser) {
-            return res.status(400).json({error: 'User already exists'});
+            return res.status(400).json({error: 'BE - User already exists'});
         }
 
         // (B) Validate the role (must match our Prisma enum)
@@ -66,7 +57,7 @@ router.post('/register', async (req, res) => {
         });
 
         return res.json({
-            message: 'User registered successfully',
+            message: 'BE - User registered successfully',
             user: {
                 id: newUser.id,
                 email: newUser.email,
@@ -74,8 +65,8 @@ router.post('/register', async (req, res) => {
             }
         });
     } catch (err) {
-        console.error('Error registering user:', err);
-        return res.status(500).json({error: 'Something went wrong'});
+        console.error('BE - Error registering user:', err);
+        return res.status(500).json({error: 'BE - Something went wrong'});
     }
 });
 
@@ -90,13 +81,26 @@ router.post('/logout', (req, res, next) => {
             if (err) {
                 return next(err);
             }
-            // Redirect or send a JSON response after logout.
-            // For server-side form submissions, you might use:
-            res.redirect('/');
-            // Or if you're using AJAX/fetch, you might send:
-            // res.json({ message: 'Logged out successfully' });
+            // Instead of redirecting, return a JSON response:
+            res.json({message: 'BE - Logged out successfully'});
         });
     });
+});
+
+// GET /auth/me
+router.get('/me', (req, res) => {
+    if (req.isAuthenticated()) {
+        // Return user details, but consider omitting sensitive data like the password
+        return res.json({
+            user: {
+                id: req.user.id,
+                email: req.user.email,
+                role: req.user.role
+            }
+        });
+    } else {
+        return res.status(401).json({error: 'Not authenticated'});
+    }
 });
 
 module.exports = router;

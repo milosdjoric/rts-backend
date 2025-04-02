@@ -15,7 +15,12 @@ const competitionRoutes = require('./routes/competitionRoutes');
 const authRoutes = require('./routes/auth');
 
 const app = express();
-app.use(cors());
+app.use(cors({
+        origin: 'http://localhost:5173',
+        credentials: true
+    }
+));
+
 app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 app.use(express.json());
 
@@ -40,7 +45,7 @@ app.use('/api/competitions', competitionRoutes);
 app.use('/auth', authRoutes);
 
 app.get('/', (req, res) => {
-    res.send('Race Timing System Backend Running');
+    res.json({message: 'Race Timing System Backend Running'});
 });
 
 app.listen(PORT, () => {
