@@ -26,8 +26,6 @@ router.post('/upload-gps', gpsUpload.single('file'), (req, res) => {
 // POST / - Create a new race event
 router.post('/', validateRaceEvent, async (req, res) => {
     try {
-        console.log("📩 Incoming Race Event Data:", req.body);
-
         // Parse dates and validate
         const startDateTime = new Date(req.body.startDateTime);
         const endDateTime = req.body.endDateTime ? new Date(req.body.endDateTime) : null;
@@ -207,8 +205,6 @@ router.get('/:id', async (req, res) => {
 // PUT /:id - Update an existing race event
 router.put('/:id', validateRaceEvent, async (req, res) => {
     try {
-        console.log("✏️ Updating Race Event Data:", req.body);
-
         // Parse and validate date fields
         let startDateTime = req.body.startDateTime ? new Date(req.body.startDateTime) : null;
         let endDateTime = req.body.endDateTime ? new Date(req.body.endDateTime) : null;

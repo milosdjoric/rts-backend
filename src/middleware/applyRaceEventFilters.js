@@ -61,8 +61,6 @@ function buildDynamicFilters(query) {
         where.races = {some: raceFilters};
     }
 
-    console.log("🚀 Final Prisma filters:", JSON.stringify(where, null, 2));
-
     return where;
 }
 
