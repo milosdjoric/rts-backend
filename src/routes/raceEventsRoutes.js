@@ -7,6 +7,7 @@ const s3 = new S3Client({
         secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY
     }
 });
+console.log("🧪 S3_REGION:", process.env.S3_REGION);
 const express = require('express');
 const {PrismaClient} = require('@prisma/client');
 const {validateRaceEvent} = require('../middleware/validateRaceEvent');
