@@ -1,4 +1,4 @@
-const { S3Client, PutObjectCommand } = require("@aws-sdk/client-s3");
+const {S3Client, PutObjectCommand} = require("@aws-sdk/client-s3");
 
 const s3 = new S3Client({
     region: process.env.S3_REGION,
@@ -26,7 +26,7 @@ router.post('/upload-image', imageUpload.single('image'), (req, res) => {
 
 // POST /upload-gps
 router.post('/upload-gps', gpsUpload.single('file'), async (req, res) => {
-    if (!req.file) return res.status(400).json({ error: 'No GPS file uploaded' });
+    if (!req.file) return res.status(400).json({error: 'No GPS file uploaded'});
 
     try {
         const ext = req.file.originalname.split('.').pop();
@@ -41,10 +41,20 @@ router.post('/upload-gps', gpsUpload.single('file'), async (req, res) => {
         }));
 
         const fileUrl = `https://${process.env.S3_BUCKET_NAME}.s3.${process.env.S3_REGION}.amazonaws.com/${fileName}`;
-        res.status(201).json({ url: fileUrl });
+        res.status(201).json({url: fileUrl});
     } catch (err) {
-        console.error("S3 Upload Error:", err);
-        res.status(500).json({ error: "Failed to upload file to S3" });
+        console.error("❌ S3 Upload Error:", {
+            message: err.message,
+            code: err.code,
+            name: err.name,
+            stack: err.stack
+        });
+        res.status(500).json({
+            error: "Failed to upload file to S3",
+            details: err.message,
+            code: err.code || null,
+            name: err.name || null
+        });
     }
 });
 
