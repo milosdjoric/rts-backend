@@ -1,3 +1,12 @@
+const { S3Client, PutObjectCommand } = require("@aws-sdk/client-s3");
+
+const s3 = new S3Client({
+    region: process.env.S3_REGION,
+    credentials: {
+        accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+        secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY
+    }
+});
 const express = require('express');
 const {PrismaClient} = require('@prisma/client');
 const {validateRaceEvent} = require('../middleware/validateRaceEvent');
@@ -16,11 +25,27 @@ router.post('/upload-image', imageUpload.single('image'), (req, res) => {
 });
 
 // POST /upload-gps
-router.post('/upload-gps', gpsUpload.single('file'), (req, res) => {
-    if (!req.file) return res.status(400).json({error: 'No GPS file uploaded'});
+router.post('/upload-gps', gpsUpload.single('file'), async (req, res) => {
+    if (!req.file) return res.status(400).json({ error: 'No GPS file uploaded' });
 
-    const fileUrl = `${req.protocol}://${req.get('host')}/uploads/${req.file.filename}`;
-    res.status(201).json({url: fileUrl});
+    try {
+        const ext = req.file.originalname.split('.').pop();
+        const fileName = `${new Date().toISOString().slice(0, 10)}__${Math.floor(Math.random() * 10000)}.${ext}`;
+
+        await s3.send(new PutObjectCommand({
+            Bucket: process.env.S3_BUCKET_NAME,
+            Key: fileName,
+            Body: req.file.buffer,
+            ContentType: req.file.mimetype,
+            ACL: 'public-read'
+        }));
+
+        const fileUrl = `https://${process.env.S3_BUCKET_NAME}.s3.${process.env.S3_REGION}.amazonaws.com/${fileName}`;
+        res.status(201).json({ url: fileUrl });
+    } catch (err) {
+        console.error("S3 Upload Error:", err);
+        res.status(500).json({ error: "Failed to upload file to S3" });
+    }
 });
 
 // POST / - Create a new race event
