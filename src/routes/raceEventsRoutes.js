@@ -38,7 +38,6 @@ router.post('/upload-gps', gpsUpload.single('file'), async (req, res) => {
             Key: fileName,
             Body: req.file.buffer,
             ContentType: req.file.mimetype,
-            ACL: 'public-read'
         }));
 
         const fileUrl = `https://${process.env.S3_BUCKET_NAME}.s3.${process.env.S3_REGION}.amazonaws.com/${fileName}`;
