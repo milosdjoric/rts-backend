@@ -18,11 +18,36 @@ const prisma = new PrismaClient();
 const {competition} = new PrismaClient(); // Added line
 
 // POST /upload-image
-router.post('/upload-image', imageUpload.single('image'), (req, res) => {
-    if (!req.file) return res.status(400).json({error: 'No file uploaded'});
+router.post('/upload-image', imageUpload.single('image'), async (req, res) => {
+    if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
 
-    const imageUrl = `http://localhost:5001/uploads/${req.file.filename}`; // Local or change to CDN path
-    res.status(201).json({url: imageUrl});
+    try {
+        const ext = req.file.originalname.split('.').pop();
+        const fileName = `${new Date().toISOString().slice(0, 10)}__${Math.floor(Math.random() * 10000)}.${ext}`;
+
+        await s3.send(new PutObjectCommand({
+            Bucket: process.env.S3_BUCKET_NAME,
+            Key: fileName,
+            Body: req.file.buffer,
+            ContentType: req.file.mimetype
+        }));
+
+        const fileUrl = `https://${process.env.S3_BUCKET_NAME}.s3.${process.env.S3_REGION}.amazonaws.com/${fileName}`;
+        res.status(201).json({ url: fileUrl });
+    } catch (err) {
+        console.error("❌ S3 Image Upload Error:", {
+            message: err.message,
+            code: err.code,
+            name: err.name,
+            stack: err.stack
+        });
+        res.status(500).json({
+            error: "Failed to upload image to S3",
+            details: err.message,
+            code: err.code || null,
+            name: err.name || null
+        });
+    }
 });
 
 // POST /upload-gps
