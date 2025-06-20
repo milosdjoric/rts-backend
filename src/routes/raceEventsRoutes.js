@@ -1,4 +1,5 @@
 const {S3Client, PutObjectCommand} = require("@aws-sdk/client-s3");
+const {generateRaceSlug} = require('../middleware/generateSlug');
 
 const s3 = new S3Client({
     region: process.env.S3_REGION,
@@ -19,7 +20,7 @@ const {competition} = new PrismaClient(); // Added line
 
 // POST /upload-image
 router.post('/upload-image', imageUpload.single('image'), async (req, res) => {
-    if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
+    if (!req.file) return res.status(400).json({error: 'No file uploaded'});
 
     try {
         const ext = req.file.originalname.split('.').pop();
@@ -33,7 +34,7 @@ router.post('/upload-image', imageUpload.single('image'), async (req, res) => {
         }));
 
         const fileUrl = `https://${process.env.S3_BUCKET_NAME}.s3.${process.env.S3_REGION}.amazonaws.com/${fileName}`;
-        res.status(201).json({ url: fileUrl });
+        res.status(201).json({url: fileUrl});
     } catch (err) {
         console.error("❌ S3 Image Upload Error:", {
             message: err.message,
@@ -119,9 +120,15 @@ router.post('/', validateRaceEvent, async (req, res) => {
         }
 
         // Create the race event
+        const uuid = require('crypto').randomUUID();
+        const firstRaceStart = req.body.races?.[0]?.startDateTime;
+        const slug = generateRaceSlug(req.body.eventName, firstRaceStart);
+
         const raceEvent = await prisma.raceEvent.create({
             data: {
+                id: uuid,
                 eventName: req.body.eventName,
+                slug: slug,
                 description: req.body.description || null,
                 mainImage: req.body.mainImage || null,
                 gallery: req.body.gallery || [],
@@ -236,11 +243,11 @@ router.get('/', applyRaceEventFilters, async (req, res) => {
     }
 });
 
-// GET /:id - Retrieve a specific race event by its ID, including nested races
-router.get('/:id', async (req, res) => {
+// GET /:slug - Retrieve a specific race event by its slug, including nested races
+router.get('/:slug', async (req, res) => {
     try {
         const raceEvent = await prisma.raceEvent.findUnique({
-            where: {id: req.params.id},
+            where: {slug: req.params.slug},
             include: {
                 races: {
                     include: {
@@ -252,7 +259,7 @@ router.get('/:id', async (req, res) => {
         });
 
         if (!raceEvent) {
-            return res.status(404).json({error: "Race event not found"});
+            return res.status(404).json({error: "Race event not found by slug"});
         }
 
         res.json(raceEvent);
@@ -262,8 +269,8 @@ router.get('/:id', async (req, res) => {
     }
 });
 
-// PUT /:id - Update an existing race event
-router.put('/:id', validateRaceEvent, async (req, res) => {
+// PUT /:slug - Update an existing race event
+router.put('/:slug', validateRaceEvent, async (req, res) => {
     try {
         // Parse and validate date fields
         let startDateTime = req.body.startDateTime ? new Date(req.body.startDateTime) : null;
@@ -298,7 +305,7 @@ router.put('/:id', validateRaceEvent, async (req, res) => {
         }
 
         const updatedRaceEvent = await prisma.raceEvent.update({
-            where: {id: req.params.id},
+            where: {slug: req.params.slug},
             data: {
                 eventName: req.body.eventName,
                 description: req.body.description || null,
@@ -353,11 +360,11 @@ router.put('/:id', validateRaceEvent, async (req, res) => {
     }
 });
 
-// DELETE /:id - Delete a race event by its unique ID
-router.delete('/:id', async (req, res) => {
+// DELETE /:slug - Delete a race event by its unique slug
+router.delete('/:slug', async (req, res) => {
     try {
         await prisma.raceEvent.delete({
-            where: {id: req.params.id},
+            where: {slug: req.params.slug},
         });
         res.json({message: "Race event deleted successfully"});
     } catch (error) {
