@@ -19,10 +19,16 @@ enum Role {
   PARTICIPANT
 }
 
+enum RaceEventType {
+  TRAIL
+  ROAD
+}
+
 model RaceEvent {
-  id               String     @id @default(uuid())
+  id               String        @id @default(uuid())
   eventName        String
-  slug             String     @unique
+  slug             String        @unique
+  type             RaceEventType
   description      String?
   mainImage        String?
   gallery          String[]
@@ -30,7 +36,7 @@ model RaceEvent {
   socialMedia      String[]
   tags             String[]
   organizerId      String?
-  organizer        Organizer? @relation(fields: [organizerId], references: [id], onDelete: SetNull)
+  organizer        Organizer?    @relation(fields: [organizerId], references: [id], onDelete: SetNull)
   races            Race[]
 }
 

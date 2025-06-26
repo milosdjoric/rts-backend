@@ -129,6 +129,7 @@ router.post('/', validateRaceEvent, async (req, res) => {
                 id: uuid,
                 eventName: req.body.eventName,
                 slug: slug,
+                type: req.body.type,
                 description: req.body.description || null,
                 mainImage: req.body.mainImage || null,
                 gallery: req.body.gallery || [],
@@ -152,13 +153,13 @@ router.post('/', validateRaceEvent, async (req, res) => {
                             if (existingComp) {
                                 competitionId = existingComp.id;
                             } else {
-                                const createdCompetition = await prisma.competition.create({
-                                    data: {
-                                        name: race.competition.name?.trim() || 'Individual Competition',
-                                        description: race.competition.description || null
-                                    }
-                                });
-                                competitionId = createdCompetition.id;
+                                    const createdCompetition = await prisma.competition.create({
+                                        data: {
+                                            name: race.competition.name?.trim() || 'Individual Competition',
+                                            description: race.competition.description || null
+                                        }
+                                    });
+                                    competitionId = createdCompetition.id;
                             }
                         }
 
@@ -308,6 +309,7 @@ router.put('/:slug', validateRaceEvent, async (req, res) => {
             where: {slug: req.params.slug},
             data: {
                 eventName: req.body.eventName,
+                type: req.body.type,
                 description: req.body.description || null,
                 mainImage: req.body.mainImage || null,
                 gallery: req.body.gallery || [],
