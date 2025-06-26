@@ -151,24 +151,26 @@ router.post('/', validateRaceEvent, async (req, res) => {
                         let competitionId = race.competitionId;
 
                         if (!competitionId && race.competition) {
+                            const name = race.competition.name?.trim();
+                            const resolvedName = name && name.length > 0 ? name : 'Individual Competition';
+
                             const existingComp = await prisma.competition.findFirst({
-                                where: {
-                                    name: race.competition.name
-                                }
+                                where: {name: resolvedName}
                             });
 
                             if (existingComp) {
                                 competitionId = existingComp.id;
                             } else {
-                                    const createdCompetition = await prisma.competition.create({
-                                        data: {
-                                            name: race.competition.name?.trim() || 'Individual Competition',
-                                            description: race.competition.description || null
-                                        }
-                                    });
-                                    competitionId = createdCompetition.id;
+                                const createdCompetition = await prisma.competition.create({
+                                    data: {
+                                        name: resolvedName,
+                                        description: race.competition.description || null
+                                    }
+                                });
+                                competitionId = createdCompetition.id;
                             }
                         }
+
 
                         return {
                             raceName: race.raceName || null,

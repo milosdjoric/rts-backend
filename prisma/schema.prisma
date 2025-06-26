@@ -42,7 +42,7 @@ model RaceEvent {
 
 model Competition {
   id          String  @id @default(uuid())
-  name        String
+  name        String  @unique
   description String?
   races       Race[]
 }
