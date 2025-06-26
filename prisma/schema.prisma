@@ -14,9 +14,8 @@ datasource db {
 }
 
 enum Role {
-  SUPER_ADMIN
+  STANDARD
   ADMIN
-  PARTICIPANT
 }
 
 enum RaceEventType {
@@ -105,7 +104,7 @@ model User {
   id          String       @id @default(uuid())
   email       String       @unique
   password    String
-  role        Role         @default(PARTICIPANT)
+  role        Role         @default(STANDARD)
   createdAt   DateTime     @default(now())
   updatedAt   DateTime     @updatedAt
   participant Participant?

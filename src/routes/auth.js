@@ -40,8 +40,8 @@ router.post('/register', async (req, res) => {
         }
 
         // (B) Validate the role (must match our Prisma enum)
-        // If the user doesn't specify a valid role, default to PARTICIPANT
-        const validatedRole = Object.values(Role).includes(role) ? role : 'PARTICIPANT';
+        // If the user doesn't specify a valid role, default to STANDARD
+        const validatedRole = Object.values(Role).includes(role) ? role : Role.STANDARD;
 
         // (C) Hash the password
         const salt = await bcrypt.genSalt(10);
