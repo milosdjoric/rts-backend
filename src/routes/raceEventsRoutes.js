@@ -122,7 +122,13 @@ router.post('/', validateRaceEvent, async (req, res) => {
         // Create the race event
         const uuid = require('crypto').randomUUID();
         const firstRaceStart = req.body.races?.[0]?.startDateTime;
-        const slug = generateRaceSlug(req.body.eventName, firstRaceStart);
+        let baseSlug = generateRaceSlug(req.body.eventName, firstRaceStart);
+        let slug = baseSlug;
+        let counter = 1;
+        while (await prisma.raceEvent.findUnique({where: {slug}})) {
+            slug = `${baseSlug}-duplicate${counter > 1 ? `-${counter}` : ''}`;
+            counter++;
+        }
 
         const raceEvent = await prisma.raceEvent.create({
             data: {
@@ -141,6 +147,7 @@ router.post('/', validateRaceEvent, async (req, res) => {
                 organizerId: organizerId || null, // Link to existing Organizer
                 races: req.body.races ? {
                     create: await Promise.all(req.body.races.map(async race => {
+                        console.log("🏁 Incoming race.competition:", race.competition);
                         let competitionId = race.competitionId;
 
                         if (!competitionId && race.competition) {
@@ -320,6 +327,7 @@ router.put('/:slug', validateRaceEvent, async (req, res) => {
                 races: req.body.races ? {
                     deleteMany: {}, // Clear existing races
                     create: await Promise.all(req.body.races.map(async race => {
+                        console.log("🏁 Incoming race.competition:", race.competition);
                         let competitionId = race.competitionId;
 
                         if (!competitionId && race.competition) {
